@@ -4,21 +4,20 @@ if [ "$#" -eq 0 ]; then
     programname=$(basename "$0")
     echo "ERROR: No program supplied"
     echo
-    echo "Usage: $programname <program>"
+    echo "Usage: $programname <program> [args...]"
     exit 1
 fi
 
+# Add exe names newline separated to disable LD_PRELOAD for them
+DISABLE_LD_PRELOAD="cs2.sh"
 
-# Add exe names newline separated to the string to disable LD_PRELOAD
-DISABLE_LD_PRELOAD="
-cs2.sh
-RiseOfTheTombRaider.sh
-"
-
-MANGOHUD_LIB_NAME="@ld_libdir_mangohud@libMangoHud_shim.so"
+MANGOHUD_LIB_NAME="/storage/.local/lib64/mangohud/libMangoHud.so"
+MANGOHUD_LIB_PATH="/storage/.local/lib64/mangohud"
+MANGOHUD_PRESETSFILE="/storage/.config/MangoHud/presets.conf"
+MANGOHUD_CONFIG_FILE="/storage/.config/MangoHud/MangoHud.conf"
 
 if [ "$1" = "--version" ]; then
-    echo @version@
+    echo "v0.8.1"
     exit 0
 fi
 
@@ -27,12 +26,12 @@ if [ "$1" = "--dlsym" ]; then
     shift
 fi
 
-# grab all arguments from command_line
+# Join all args to a single string for searching
 command_line="$*"
-# flag for disable_preload
+
 disable_preload=false
 
-# Check if the script name or any of the executables in DISABLE_LD_PRELOAD are in the command line
+# Check if the command line contains any of the disable preload executables
 for exe in $DISABLE_LD_PRELOAD; do
     if echo "$command_line" | grep -q "$exe"; then
         disable_preload=true
@@ -41,18 +40,20 @@ for exe in $DISABLE_LD_PRELOAD; do
 done
 
 if [ "$disable_preload" = true ]; then
+    # Run without LD_PRELOAD but with MANGOHUD=1
     exec env MANGOHUD=1 "$@"
 else
-    # Make sure we don't append mangohud lib multiple times
-    # otherwise, this could cause issues with the steam runtime
+    # Prevent duplicate preload
     case ":${LD_PRELOAD-}:" in
-        (*:$MANGOHUD_LIB_NAME:*)
+        *:"$MANGOHUD_LIB_NAME":*)
+            # already present, do nothing
             ;;
-        (*)
-            # Preload using the plain filenames of the libs, the dynamic linker will
-            # figure out whether the 32 or 64 bit version should be used
-            LD_PRELOAD="${LD_PRELOAD:+$LD_PRELOAD:}${MANGOHUD_LIB_NAME}"
+        *)
+            LD_PRELOAD="${LD_PRELOAD:+$LD_PRELOAD:}$MANGOHUD_LIB_NAME"
+            ;;
     esac
 
-    exec env MANGOHUD=1 LD_PRELOAD="${LD_PRELOAD}" "$@"
+    # Export LD_LIBRARY_PATH so libspdlog and others can be found
+    LD_LIBRARY_PATH="${MANGOHUD_LIB_PATH}:${LD_LIBRARY_PATH-}"
+    exec env MANGOHUD=1 LD_PRELOAD="$LD_PRELOAD" LD_LIBRARY_PATH="$LD_LIBRARY_PATH" "$@"
 fi

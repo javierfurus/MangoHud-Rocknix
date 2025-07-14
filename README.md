@@ -1,5 +1,35 @@
-# MangoHud
+# MangoHud - Rocknix
+This is a very slight modification of MangoHud to work on Rocknix with battery indicator.
 
+# Build instructions
+Building instructions are for Ubuntu 24.04.
+
+First, add the `arm64` architecture to your distro if you are not building on arm64.
+
+```bash
+sudo dpkg --add-architecture arm64
+```
+
+Install all the dependencies
+```bash
+sudo apt install libdbus-1-dev:arm64 libxkbcommon-dev:arm64 libx11-dev:arm64 libxext-dev:arm64 libvulkan-dev:arm64 libgl-dev:arm64 libxrandr-dev:arm64 libpci-dev:arm64 libwayland-egl-backend-dev:arm64 libwayland-cursor0:arm64
+```
+
+Build MangoHud
+```bash
+meson setup build-aarch64 --cross-file aarch64-cross.txt
+meson compile -C build-aarch64
+```
+Copy the three .so files in build-aarch64 to `/storage/.local/lib/mangohud/lib64` in your Rocknix installation and the `mangohud` script to `/storage/.local/bin`
+
+Launch games like this:
+```bash
+box64 "/storage/.local/bin/mangohud" "$WINEDIR/wine" "$GAMEDIR/disco.exe"
+```
+
+Config files are located under `/storage/.config/MangoHud`, where you can define your `MangoHud.conf` and `presets` files.
+
+# MangoHud
 A Vulkan and OpenGL overlay for monitoring FPS, temperatures, CPU/GPU load and more.
 
 ![Example gif showing a standard performance readout with frametimes](assets/overlay_example.gif)
@@ -684,7 +714,7 @@ Example output:
 #### Intel notes
 - GPU temperature for `i915` requires **linux 6.13+**
 - Fan speed for `i915` requires **linux 6.12+**
-- GPU temperature and vram temperature for `xe` requires **linux 6.15+** 
+- GPU temperature and vram temperature for `xe` requires **linux 6.15+**
 - Fan speed for `xe` requires **linux 6.16+**
 - GPU usage and memory usage shows usage of current process, not total system usage (it's an issue on intel's side)
 - Integrated Intel GPUs are **limited** due to lack of hwmon interface (it's an issue on intel's side, [i915 source](https://github.com/torvalds/linux/blob/5fc31936081919a8572a3d644f3fbb258038f337/drivers/gpu/drm/i915/i915_hwmon.c#L914-L916), [xe source](https://github.com/torvalds/linux/blob/5fc31936081919a8572a3d644f3fbb258038f337/drivers/gpu/drm/xe/xe_hwmon.c#L824-L826))
