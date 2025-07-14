@@ -13,7 +13,8 @@ void BatteryStats::numBattery() {
     fs::path path("/sys/class/power_supply/");
     for (auto& p : fs::directory_iterator(path)) {
         string fileName = p.path().filename();
-        if (fileName.find("BAT") != std::string::npos) {
+        if (fileName.find("BAT") != std::string::npos ||
+            fileName.find("battery") != std::string::npos) {
             battPath[batteryCount] = p.path();
             batteryCount += 1;
         }
